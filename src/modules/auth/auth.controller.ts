@@ -1,7 +1,7 @@
 import type { Response, NextFunction } from 'express';
 import type { AuthRequest } from '../../middlewares/auth.middleware.js';
 import { validateRegister, validateLogin } from './auth.validation.js';
-import { registerUser, loginUser, refreshAccessToken, logoutUser } from './auth.service.js';
+import { registerUser, loginUser, refreshAccessToken, logoutUser, getUserById } from './auth.service.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 
 export const register = async (
@@ -116,7 +116,21 @@ export const getMe = async (
             return sendError(res, 'Not authenticated', 401);
         }
 
-        return sendSuccess(res, { userId: req.user.userId, role: req.user.role }, 'Authenticated', 200);
+        const user = await getUserById(req.user.userId);
+
+        if (!user) {
+            return sendError(res, 'User not found', 404);
+        }
+
+        return sendSuccess(res, {
+            userId: user.id,
+            firstName: user.firstName,
+            lastName: user.lastName,
+            email: user.email,
+            role: user.role,
+            isVerified: user.isVerified,
+        }, 'Authenticated', 200);
+
     } catch (err) {
         next(err);
     }

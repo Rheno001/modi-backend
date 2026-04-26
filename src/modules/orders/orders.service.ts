@@ -3,6 +3,7 @@ import { initializePayment, verifyPayment } from '../../utils/paystack.js';
 import { generateUniqueCode, generateQRCode } from '../../utils/ticket.js';
 import { env } from '../../config/env.js';
 import crypto from 'crypto';
+import { sendTicketConfirmationEmail } from '../../utils/email.js';
 
 export const initiateOrder = async (
     attendee: {
@@ -161,7 +162,9 @@ export const verifyOrder = async (reference: string) => {
             },
             event: true,
         },
+
     });
+
 
     if (!order) throw new Error('Order not found');
 
@@ -260,6 +263,28 @@ export const verifyOrder = async (reference: string) => {
 
         return { order: finalOrder, tickets: createdTickets };
     });
+
+    // Send ticket confirmation email (fire-and-forget — never blocks the response)
+    if (result.order?.user) {
+        const { user, event } = result.order;
+        sendTicketConfirmationEmail({
+            to: user.email,
+            firstName: user.firstName,
+            eventTitle: event.title,
+            eventDate: event.startDate.toISOString(),
+            eventTime: event.startTime,
+            eventVenue: event.venue,
+            eventCity: event.city,
+            tickets: result.tickets.map((t: any) => ({
+                uniqueCode: t.uniqueCode,
+                qrUrl: t.qrUrl ?? null,
+                // ticketTypeName comes from the orderItem included in createdTickets
+                ticketTypeName: t.orderItem?.ticketType?.name ?? 'Ticket',
+            })),
+        }).catch((err: unknown) => {
+            console.error('[Email] Unexpected error in fire-and-forget email:', err);
+        });
+    }
 
     return result;
 };

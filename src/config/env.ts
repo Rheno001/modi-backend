@@ -24,4 +24,6 @@ export const env = {
     platformFeePercent: parseFloat(process.env.PLATFORM_FEE_PERCENT || '8'),
     paystackSecretKey: process.env.PAYSTACK_SECRET_KEY!,
     paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || '',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    fromEmail: process.env.FROM_EMAIL || 'onboarding@resend.dev',
 };

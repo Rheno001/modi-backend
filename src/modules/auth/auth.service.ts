@@ -14,32 +14,8 @@ export const registerUser = async (data: {
 
     const hashed = await hashPassword(data.password);
 
-    // If a guest account exists with this email, upgrade it
-    // instead of throwing a duplicate error
-    if (existingUser && !existingUser.isVerified) {
-        const user = await prisma.user.update({
-            where: { email: data.email.toLowerCase() },
-            data: {
-                firstName: data.firstName,
-                lastName: data.lastName,
-                passwordHash: hashed,
-                isVerified: false,
-            },
-            select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                email: true,
-                role: true,
-                isVerified: true,
-                createdAt: true,
-            }
-        });
-        return user;
-    }
-
-    // If a fully registered account exists, reject
-    if (existingUser && existingUser.isVerified) {
+    // Block registration if ANY account with this email already exists
+    if (existingUser) {
         throw new Error('An account with this email already exists');
     }
 
@@ -140,5 +116,19 @@ export const logoutUser = async (token: string) => {
 
     await prisma.refreshToken.deleteMany({
         where: { token }
+    });
+};
+
+export const getUserById = async (userId: string) => {
+    return prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            isVerified: true,
+        },
     });
 };
