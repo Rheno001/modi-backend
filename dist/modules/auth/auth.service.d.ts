@@ -35,4 +35,12 @@ export declare const refreshAccessToken: (token: string) => Promise<{
     accessToken: string;
 }>;
 export declare const logoutUser: (token: string) => Promise<void>;
+export declare const getUserById: (userId: string) => Promise<{
+    role: import("@prisma/client").$Enums.Role;
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    isVerified: boolean;
+} | null>;
 //# sourceMappingURL=auth.service.d.ts.map

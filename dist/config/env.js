@@ -2,7 +2,8 @@ const requiredEnvVars = [
     'DATABASE_URL',
     'JWT_ACCESS_SECRET',
     'JWT_REFRESH_SECRET',
-    'PORT'
+    'PORT',
+    'PAYSTACK_SECRET_KEY',
 ];
 requiredEnvVars.forEach((key) => {
     if (!process.env[key]) {
@@ -18,5 +19,10 @@ export const env = {
     port: parseInt(process.env.PORT || '5000'),
     nodeEnv: process.env.NODE_ENV || 'development',
     clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
+    platformFeePercent: parseFloat(process.env.PLATFORM_FEE_PERCENT || '8'),
+    paystackSecretKey: process.env.PAYSTACK_SECRET_KEY,
+    paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || '',
+    resendApiKey: process.env.RESEND_API_KEY || '',
+    fromEmail: process.env.FROM_EMAIL || 'onboarding@resend.dev',
 };
 //# sourceMappingURL=env.js.map

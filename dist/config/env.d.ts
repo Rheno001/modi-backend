@@ -7,5 +7,10 @@ export declare const env: {
     port: number;
     nodeEnv: string;
     clientUrl: string;
+    platformFeePercent: number;
+    paystackSecretKey: string;
+    paystackPublicKey: string;
+    resendApiKey: string;
+    fromEmail: string;
 };
 //# sourceMappingURL=env.d.ts.map

@@ -27,17 +27,17 @@ export declare const createEvent: (userId: string, data: {
         lastName: string;
     };
     ticketTypes: {
+        name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        eventId: string;
         price: number;
         quantity: number;
         quantitySold: number;
         saleStart: Date | null;
         saleEnd: Date | null;
         perks: string | null;
-        eventId: string;
     }[];
 } & {
     id: string;
@@ -73,17 +73,17 @@ export declare const getAllEvents: (filters: {
             lastName: string;
         };
         ticketTypes: {
+            name: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            name: string;
+            eventId: string;
             price: number;
             quantity: number;
             quantitySold: number;
             saleStart: Date | null;
             saleEnd: Date | null;
             perks: string | null;
-            eventId: string;
         }[];
     } & {
         id: string;
@@ -122,17 +122,17 @@ export declare const getEventById: (eventId: string) => Promise<{
         lastName: string;
     };
     ticketTypes: {
+        name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        eventId: string;
         price: number;
         quantity: number;
         quantitySold: number;
         saleStart: Date | null;
         saleEnd: Date | null;
         perks: string | null;
-        eventId: string;
     }[];
 } & {
     id: string;
@@ -156,17 +156,17 @@ export declare const getEventById: (eventId: string) => Promise<{
 }>;
 export declare const getMyEvents: (userId: string) => Promise<({
     ticketTypes: {
+        name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        eventId: string;
         price: number;
         quantity: number;
         quantitySold: number;
         saleStart: Date | null;
         saleEnd: Date | null;
         perks: string | null;
-        eventId: string;
     }[];
 } & {
     id: string;
@@ -212,17 +212,17 @@ export declare const updateEvent: (eventId: string, userId: string, role: string
         lastName: string;
     };
     ticketTypes: {
+        name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        eventId: string;
         price: number;
         quantity: number;
         quantitySold: number;
         saleStart: Date | null;
         saleEnd: Date | null;
         perks: string | null;
-        eventId: string;
     }[];
 } & {
     id: string;
@@ -292,17 +292,17 @@ export declare const adminGetAllEvents: () => Promise<({
         lastName: string;
     };
     ticketTypes: {
+        name: string;
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        name: string;
+        eventId: string;
         price: number;
         quantity: number;
         quantitySold: number;
         saleStart: Date | null;
         saleEnd: Date | null;
         perks: string | null;
-        eventId: string;
     }[];
 } & {
     id: string;

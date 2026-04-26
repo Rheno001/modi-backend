@@ -6,6 +6,7 @@ import { env } from './config/env.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import eventRoutes from './modules/events/events.routes.js';
+import orderRoutes from './modules/orders/orders.routes.js';
 const app = express();
 app.use(helmet());
 app.use(cors({
@@ -20,6 +21,7 @@ app.get('/health', (req, res) => {
 });
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/events', eventRoutes);
+app.use('/api/v1/orders', orderRoutes);
 app.use(errorMiddleware);
 export default app;
 //# sourceMappingURL=app.js.map

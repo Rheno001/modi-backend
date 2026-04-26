@@ -3,17 +3,19 @@ import { hashPassword, comparePassword } from '../../utils/hash.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
 export const registerUser = async (data) => {
     const existingUser = await prisma.user.findUnique({
-        where: { email: data.email }
+        where: { email: data.email.toLowerCase() }
     });
+    const hashed = await hashPassword(data.password);
+    // Block registration if ANY account with this email already exists
     if (existingUser) {
         throw new Error('An account with this email already exists');
     }
-    const hashed = await hashPassword(data.password);
+    // Fresh registration
     const user = await prisma.user.create({
         data: {
             firstName: data.firstName,
             lastName: data.lastName,
-            email: data.email,
+            email: data.email.toLowerCase(),
             passwordHash: hashed,
         },
         select: {
@@ -82,6 +84,19 @@ export const logoutUser = async (token) => {
         return;
     await prisma.refreshToken.deleteMany({
         where: { token }
+    });
+};
+export const getUserById = async (userId) => {
+    return prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            role: true,
+            isVerified: true,
+        },
     });
 };
 //# sourceMappingURL=auth.service.js.map
