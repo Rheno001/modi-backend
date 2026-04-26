@@ -9,20 +9,46 @@ export const registerUser = async (data: {
     password: string;
 }) => {
     const existingUser = await prisma.user.findUnique({
-        where: { email: data.email }
+        where: { email: data.email.toLowerCase() }
     });
-
-    if (existingUser) {
-        throw new Error('An account with this email already exists');
-    }
 
     const hashed = await hashPassword(data.password);
 
+    // If a guest account exists with this email, upgrade it
+    // instead of throwing a duplicate error
+    if (existingUser && !existingUser.isVerified) {
+        const user = await prisma.user.update({
+            where: { email: data.email.toLowerCase() },
+            data: {
+                firstName: data.firstName,
+                lastName: data.lastName,
+                passwordHash: hashed,
+                isVerified: false,
+            },
+            select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+            }
+        });
+        return user;
+    }
+
+    // If a fully registered account exists, reject
+    if (existingUser && existingUser.isVerified) {
+        throw new Error('An account with this email already exists');
+    }
+
+    // Fresh registration
     const user = await prisma.user.create({
         data: {
             firstName: data.firstName,
             lastName: data.lastName,
-            email: data.email,
+            email: data.email.toLowerCase(),
             passwordHash: hashed,
         },
         select: {

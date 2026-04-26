@@ -11,6 +11,26 @@ enum Role {
   ADMIN
 }
 
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELLED
+  COMPLETED
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum TicketStatus {
+  VALID
+  USED
+  CANCELLED
+}
+
 model User {
   id           String   @id @default(uuid())
   email        String   @unique
@@ -25,6 +45,9 @@ model User {
   updatedAt    DateTime @updatedAt
 
   refreshTokens RefreshToken[]
+  events        Event[]
+  orders        Order[]
+  tickets       Ticket[]
 }
 
 model RefreshToken {
@@ -34,4 +57,93 @@ model RefreshToken {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  category    String
+  bannerUrl   String?
+  venue       String
+  address     String
+  city        String
+  state       String
+  startDate   DateTime
+  endDate     DateTime
+  startTime   String
+  endTime     String
+  status      EventStatus @default(DRAFT)
+  isFeatured  Boolean     @default(false)
+  createdById String
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  ticketTypes TicketType[]
+  orders      Order[]
+}
+
+model TicketType {
+  id           String    @id @default(uuid())
+  eventId      String
+  event        Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  name         String
+  price        Float
+  quantity     Int
+  quantitySold Int       @default(0)
+  saleStart    DateTime?
+  saleEnd      DateTime?
+  perks        String?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id              String      @id @default(uuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId         String
+  event           Event       @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  reference       String      @unique
+  totalAmount     Float
+  platformFee     Float
+  organizerPayout Float
+  status          OrderStatus @default(PENDING)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  orderItems OrderItem[]
+  tickets    Ticket[]
+}
+
+model OrderItem {
+  id           String     @id @default(uuid())
+  orderId      String
+  order        Order      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  ticketTypeId String
+  ticketType   TicketType @relation(fields: [ticketTypeId], references: [id], onDelete: Cascade)
+  quantity     Int
+  unitPrice    Float
+  createdAt    DateTime   @default(now())
+
+  tickets Ticket[]
+}
+
+model Ticket {
+  id          String       @id @default(uuid())
+  orderId     String
+  order       Order        @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItemId String
+  orderItem   OrderItem    @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  eventId     String
+  uniqueCode  String       @unique
+  qrUrl       String?
+  status      TicketStatus @default(VALID)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }

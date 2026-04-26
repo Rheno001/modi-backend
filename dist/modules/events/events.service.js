@@ -1,0 +1,222 @@
+import { Prisma } from '@prisma/client';
+import prisma from '../../config/db.js';
+export const createEvent = async (userId, data) => {
+    const event = await prisma.event.create({
+        data: {
+            title: data.title,
+            description: data.description,
+            category: data.category,
+            bannerUrl: data.bannerUrl ?? null,
+            venue: data.venue,
+            address: data.address,
+            city: data.city,
+            state: data.state,
+            startDate: new Date(data.startDate),
+            endDate: new Date(data.endDate),
+            startTime: data.startTime,
+            endTime: data.endTime,
+            createdById: userId,
+            ticketTypes: {
+                create: data.ticketTypes.map((ticket) => ({
+                    name: ticket.name,
+                    price: ticket.price,
+                    quantity: ticket.quantity,
+                    saleStart: ticket.saleStart ? new Date(ticket.saleStart) : null,
+                    saleEnd: ticket.saleEnd ? new Date(ticket.saleEnd) : null,
+                    perks: ticket.perks ?? null,
+                }))
+            }
+        },
+        include: {
+            ticketTypes: true,
+            createdBy: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                }
+            }
+        }
+    });
+    return event;
+};
+export const getAllEvents = async (filters) => {
+    const page = filters.page || 1;
+    const limit = filters.limit || 12;
+    const skip = (page - 1) * limit;
+    const where = {
+        status: 'PUBLISHED',
+        ...(filters.city && { city: { contains: filters.city, mode: 'insensitive' } }),
+        ...(filters.category && { category: { contains: filters.category, mode: 'insensitive' } }),
+        ...(filters.search && {
+            OR: [
+                { title: { contains: filters.search, mode: 'insensitive' } },
+                { description: { contains: filters.search, mode: 'insensitive' } },
+                { venue: { contains: filters.search, mode: 'insensitive' } },
+            ]
+        }),
+    };
+    const [events, total] = await prisma.$transaction([
+        prisma.event.findMany({
+            where,
+            skip,
+            take: limit,
+            orderBy: { startDate: 'asc' },
+            include: {
+                ticketTypes: true,
+                createdBy: {
+                    select: {
+                        id: true,
+                        firstName: true,
+                        lastName: true,
+                    }
+                }
+            }
+        }),
+        prisma.event.count({ where })
+    ]);
+    return {
+        events,
+        pagination: {
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNextPage: page < Math.ceil(total / limit),
+            hasPrevPage: page > 1,
+        }
+    };
+};
+export const getEventById = async (eventId) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+            ticketTypes: true,
+            createdBy: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                }
+            }
+        }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.status !== 'PUBLISHED') {
+        throw new Error('Event not found');
+    }
+    return event;
+};
+export const getMyEvents = async (userId) => {
+    const events = await prisma.event.findMany({
+        where: { createdById: userId },
+        orderBy: { createdAt: 'desc' },
+        include: {
+            ticketTypes: true,
+        }
+    });
+    return events;
+};
+export const updateEvent = async (eventId, userId, role, data) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to edit this event');
+    }
+    if (event.status === 'CANCELLED') {
+        throw new Error('Cannot edit a cancelled event');
+    }
+    const { ticketTypes, startDate, endDate, ...eventData } = data;
+    const updateData = {
+        ...eventData,
+        ...(startDate && { startDate: new Date(startDate) }),
+        ...(endDate && { endDate: new Date(endDate) }),
+    };
+    const updated = await prisma.event.update({
+        where: { id: eventId },
+        data: updateData,
+        include: {
+            ticketTypes: true,
+            createdBy: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                }
+            }
+        }
+    });
+    return updated;
+};
+export const cancelEvent = async (eventId, userId, role) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to cancel this event');
+    }
+    if (event.status === 'CANCELLED') {
+        throw new Error('Event is already cancelled');
+    }
+    const updated = await prisma.event.update({
+        where: { id: eventId },
+        data: { status: 'CANCELLED' }
+    });
+    return updated;
+};
+export const publishEvent = async (eventId, userId, role) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: { ticketTypes: true }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to publish this event');
+    }
+    if (event.status === 'CANCELLED') {
+        throw new Error('Cannot publish a cancelled event');
+    }
+    if (event.status === 'PUBLISHED') {
+        throw new Error('Event is already published');
+    }
+    if (event.ticketTypes.length === 0) {
+        throw new Error('Cannot publish an event with no ticket types');
+    }
+    const updated = await prisma.event.update({
+        where: { id: eventId },
+        data: { status: 'PUBLISHED' }
+    });
+    return updated;
+};
+export const adminGetAllEvents = async () => {
+    const events = await prisma.event.findMany({
+        orderBy: { createdAt: 'desc' },
+        include: {
+            ticketTypes: true,
+            createdBy: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                }
+            }
+        }
+    });
+    return events;
+};
+//# sourceMappingURL=events.service.js.map
