@@ -26,6 +26,15 @@ app.get('/health', (req, res) => {
     res.status(200).json({ success: true, message: 'Modi server is running' });
 });
 
+app.get('/api/v1/health-check', (req, res) => {
+    res.json({
+        status: 'healthy',
+        clientUrl: env.clientUrl,
+        nodeEnv: env.nodeEnv,
+        originHeader: req.headers.origin || 'none'
+    });
+});
+
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/orders', orderRoutes);

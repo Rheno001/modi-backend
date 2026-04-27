@@ -18,7 +18,8 @@ export const initiateOrder = async (
             ticketTypeId: string;
             quantity: number;
         }[];
-    }
+    },
+    origin?: string
 ) => {
     // 1. Fetch the event and verify it's published
     const event = await prisma.event.findUnique({
@@ -127,6 +128,7 @@ export const initiateOrder = async (
         email: user.email,
         amount: totalAmount,
         reference,
+        origin,
         metadata: {
             orderId: order.id,
             userId: user.id,

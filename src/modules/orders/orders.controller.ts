@@ -17,6 +17,20 @@ export const initiate = async (
 ) => {
     try {
         const { eventId, items, attendee } = req.body;
+        let origin = req.body.origin || req.headers.origin;
+
+        // If it's a string array (unlikely for origin header, but safe) take the first
+        if (Array.isArray(origin)) origin = origin[0];
+
+        // Fallback to referer if still missing (extract origin from URL)
+        if (!origin && req.headers.referer) {
+            try {
+                const refererUrl = new URL(req.headers.referer);
+                origin = refererUrl.origin;
+            } catch (e) { /* ignore */ }
+        }
+
+        console.log('[Order Controller] Final detected origin:', origin);
 
         if (!eventId) {
             return sendError(res, 'Event ID is required', 400);
@@ -39,7 +53,7 @@ export const initiate = async (
             }
         }
 
-        const result = await initiateOrder(attendee, req.body);
+        const result = await initiateOrder(attendee, req.body, origin);
         return sendSuccess(res, result, 'Order initiated successfully', 201);
     } catch (err: any) {
         if (
