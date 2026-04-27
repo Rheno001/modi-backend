@@ -125,7 +125,7 @@ export const getAllEvents = async (filters: {
     };
 };
 
-export const getEventById = async (eventId: string) => {
+export const getEventById = async (eventId: string, userId?: string, role?: string) => {
     const event = await prisma.event.findUnique({
         where: { id: eventId },
         include: {
@@ -145,7 +145,8 @@ export const getEventById = async (eventId: string) => {
         throw new Error('Event not found');
     }
 
-    if (event.status !== 'PUBLISHED') {
+    // Allow the owner or an admin to see a draft/cancelled event
+    if (event.status !== 'PUBLISHED' && event.createdById !== userId && role !== 'ADMIN') {
         throw new Error('Event not found');
     }
 
@@ -198,8 +199,8 @@ export const updateEvent = async (
         throw new Error('You are not authorized to edit this event');
     }
 
-    if (event.status === 'CANCELLED') {
-        throw new Error('Cannot edit a cancelled event');
+    if (event.status === 'CANCELLED' || event.status === 'COMPLETED') {
+        throw new Error(`Cannot edit a ${event.status.toLowerCase()} event`);
     }
 
     const { ticketTypes, startDate, endDate, ...eventData } = data;
@@ -209,6 +210,21 @@ export const updateEvent = async (
         ...(startDate && { startDate: new Date(startDate) }),
         ...(endDate && { endDate: new Date(endDate) }),
     };
+
+    // If ticketTypes are provided, we replace them
+    if (ticketTypes && Array.isArray(ticketTypes)) {
+        updateData.ticketTypes = {
+            deleteMany: {},
+            create: ticketTypes.map((ticket: any) => ({
+                name: ticket.name,
+                price: ticket.price,
+                quantity: ticket.quantity,
+                saleStart: ticket.saleStart ? new Date(ticket.saleStart) : null,
+                saleEnd: ticket.saleEnd ? new Date(ticket.saleEnd) : null,
+                perks: ticket.perks ?? null,
+            }))
+        };
+    }
 
     const updated = await prisma.event.update({
         where: { id: eventId },

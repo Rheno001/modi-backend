@@ -16,14 +16,17 @@ const router = Router();
 
 // Public routes — no auth required
 router.get('/', getAll);
-router.get('/:id', getOne);
 
 // Protected routes — must be logged in
 router.post('/', authMiddleware, create);
 router.get('/my/events', authMiddleware, getMine);
+router.get('/my/:id', authMiddleware, getOne); // We can reuse getOne if we make it smarter or add a specific one
 router.patch('/:id', authMiddleware, update);
 router.patch('/:id/cancel', authMiddleware, cancel);
 router.patch('/:id/publish', authMiddleware, publish);
+
+// Catch-all ID route (must be last among ID routes)
+router.get('/:id', getOne);
 
 // Admin only routes
 router.get('/admin/all', authMiddleware, adminMiddleware, adminGetAll);

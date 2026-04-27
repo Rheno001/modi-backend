@@ -59,7 +59,7 @@ export const getOne = async (
     next: NextFunction
 ) => {
     try {
-        const event = await getEventById(req.params.id as string);
+        const event = await getEventById(req.params.id as string, req.user?.userId, req.user?.role);
         return sendSuccess(res, event, 'Event fetched successfully', 200);
     } catch (err: any) {
         if (err.message === 'Event not found') {
@@ -104,7 +104,7 @@ export const update = async (
         if (
             err.message === 'Event not found' ||
             err.message === 'You are not authorized to edit this event' ||
-            err.message === 'Cannot edit a cancelled event'
+            err.message.startsWith('Cannot edit a')
         ) {
             const status = err.message === 'Event not found' ? 404 : 403;
             return sendError(res, err.message, status);
