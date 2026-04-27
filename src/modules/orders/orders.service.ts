@@ -268,7 +268,18 @@ export const verifyOrder = async (reference: string) => {
 
     // Send ticket confirmation email (fire-and-forget — never blocks the response)
     if (result.order?.user) {
-        const { user, event } = result.order;
+        const { user, event, orderItems } = result.order;
+        
+        // Map created tickets to their respective ticket type names
+        const enrichedTickets = result.tickets.map((t: any) => {
+            const item = orderItems.find(oi => oi.id === t.orderItemId);
+            return {
+                uniqueCode: t.uniqueCode,
+                qrUrl: t.qrUrl ?? null,
+                ticketTypeName: item?.ticketType?.name ?? 'Ticket',
+            };
+        });
+
         sendTicketConfirmationEmail({
             to: user.email,
             firstName: user.firstName,
@@ -277,12 +288,7 @@ export const verifyOrder = async (reference: string) => {
             eventTime: event.startTime,
             eventVenue: event.venue,
             eventCity: event.city,
-            tickets: result.tickets.map((t: any) => ({
-                uniqueCode: t.uniqueCode,
-                qrUrl: t.qrUrl ?? null,
-                // ticketTypeName comes from the orderItem included in createdTickets
-                ticketTypeName: t.orderItem?.ticketType?.name ?? 'Ticket',
-            })),
+            tickets: enrichedTickets,
         }).catch((err: unknown) => {
             console.error('[Email] Unexpected error in fire-and-forget email:', err);
         });

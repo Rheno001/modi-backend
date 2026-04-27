@@ -71,15 +71,21 @@ export const sendWelcomeEmail = async (data: { to: string; firstName: string }) 
     const html = getEmailLayout(content, 'Welcome to Modi Events');
 
     try {
-        await resend.emails.send({
+        const { data: resendData, error: resendError } = await resend.emails.send({
             from: env.fromEmail,
             to: data.to,
             subject: 'Welcome to Modi Events! 🚀',
             html,
         });
-        console.log(`[Email] Welcome email sent to ${data.to}`);
+
+        if (resendError) {
+            console.error('[Email] Resend error (Welcome):', JSON.stringify(resendError, null, 2));
+            return;
+        }
+
+        console.log(`[Email] Welcome email sent successfully: ${resendData?.id}`);
     } catch (err) {
-        console.error('[Email] Failed to send welcome email:', err);
+        console.error('[Email] Unexpected failure (Welcome):', err);
     }
 };
 
@@ -152,14 +158,20 @@ export const sendTicketConfirmationEmail = async (data: {
     const html = getEmailLayout(content, `Your tickets for ${data.eventTitle}`);
 
     try {
-        await resend.emails.send({
+        const { data: resendData, error: resendError } = await resend.emails.send({
             from: env.fromEmail,
             to: data.to,
             subject: `Your tickets for ${data.eventTitle} 🎟️`,
             html,
         });
-        console.log(`[Email] Ticket confirmation sent to ${data.to}`);
+
+        if (resendError) {
+            console.error('[Email] Resend error (Confirmation):', JSON.stringify(resendError, null, 2));
+            return;
+        }
+
+        console.log(`[Email] Ticket confirmation sent successfully: ${resendData?.id}`);
     } catch (err) {
-        console.error('[Email] Failed to send ticket confirmation:', err);
+        console.error('[Email] Unexpected failure (Confirmation):', err);
     }
 };
