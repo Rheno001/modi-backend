@@ -40,3 +40,14 @@ export const authMiddleware = (
     return sendError(res, 'Invalid or expired token', 401);
   }
 };
+
+export const isAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  if (req.user?.role !== 'ADMIN') {
+    return sendError(res, 'Access forbidden: Admin role required', 403);
+  }
+  next();
+};
