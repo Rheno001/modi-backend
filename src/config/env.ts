@@ -26,4 +26,7 @@ export const env = {
     paystackPublicKey: process.env.PAYSTACK_PUBLIC_KEY || '',
     resendApiKey: process.env.RESEND_API_KEY || '',
     fromEmail: process.env.FROM_EMAIL || 'onboarding@resend.dev',
+    cloudinaryCloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+    cloudinaryApiKey: process.env.CLOUDINARY_API_KEY || '',
+    cloudinaryApiSecret: process.env.CLOUDINARY_API_SECRET || '',
 };

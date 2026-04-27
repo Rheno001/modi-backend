@@ -7,6 +7,7 @@ import { errorMiddleware } from './middlewares/error.middleware.js';
 import authRoutes from './modules/auth/auth.routes.js';
 import eventRoutes from './modules/events/events.routes.js';
 import orderRoutes from './modules/orders/orders.routes.js';
+import uploadRoutes from './modules/uploads/uploads.routes.js';
 
 const app = express();
 
@@ -28,6 +29,7 @@ app.get('/health', (req, res) => {
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/events', eventRoutes);
 app.use('/api/v1/orders', orderRoutes);
+app.use('/api/v1/uploads', uploadRoutes);
 
 app.use(errorMiddleware);
 
