@@ -27,6 +27,7 @@ export const register = async (
     }
 };
 
+
 export const login = async (
     req: AuthRequest,
     res: Response,

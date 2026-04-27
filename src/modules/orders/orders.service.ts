@@ -181,9 +181,12 @@ export const verifyOrder = async (reference: string) => {
     }
 
     // 3. Verify with Paystack
+    console.log('[Order Service] Verifying payment with Paystack for reference:', reference);
     const paystackData = await verifyPayment(reference);
+    console.log('[Order Service] Paystack verification response status:', paystackData.status);
 
     if (paystackData.status !== 'success') {
+        console.warn('[Order Service] Payment NOT successful. Updating status to FAILED.');
         await prisma.order.update({
             where: { reference },
             data: { status: 'FAILED' },
@@ -193,6 +196,7 @@ export const verifyOrder = async (reference: string) => {
 
     // 4. Use a transaction to update everything atomically
     const result = await prisma.$transaction(async (tx) => {
+        console.log('[Order Service] Transaction started for reference:', reference);
         // Update order status
         await tx.order.update({
             where: { reference },
@@ -213,6 +217,7 @@ export const verifyOrder = async (reference: string) => {
         const createdTickets: any[] = [];
 
         // For each order item, generate tickets and update quantity sold
+        console.log(`[Order Service] Creating tickets for ${updatedOrder.orderItems.length} items...`);
         for (const item of updatedOrder.orderItems) {
             // Atomically increment quantitySold — prevents overselling
             await tx.ticketType.update({
@@ -244,6 +249,7 @@ export const verifyOrder = async (reference: string) => {
                 createdTickets.push(ticket);
             }
         }
+        console.log(`[Order Service] Successfully created ${createdTickets.length} tickets`);
 
         // 3. Finally, fetch the fully updated order with fresh stats and secure user object
         const finalOrder = await tx.order.findUnique({

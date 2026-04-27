@@ -95,15 +95,18 @@ export const verify = async (
     res: Response,
     next: NextFunction
 ) => {
+    const { reference } = req.params;
     try {
-        const { reference } = req.params;
+        console.log('[Order Controller] Starting verification for reference:', reference);
         if (!reference) {
             return sendError(res, 'Reference is required', 400);
         }
 
         const result = await verifyOrder(reference as string);
+        console.log('[Order Controller] Verification successful for reference:', reference);
         return sendSuccess(res, result, 'Order verified successfully', 200);
     } catch (err: any) {
+        console.error('[Order Controller] Verification error for reference:', reference, 'Error:', err.message);
         if (err.message === 'Order not found') {
             return sendError(res, err.message, 404);
         }
