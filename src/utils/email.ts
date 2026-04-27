@@ -3,92 +3,6 @@ import { env } from '../config/env.js';
 
 const resend = new Resend(env.resendApiKey);
 
-const getEmailLayout = (content: string, previewText: string) => `
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>${previewText}</title>
-  </head>
-  <body style="background:#0a0a0a;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:40px 16px;">
-    <div style="max-width:540px;margin:0 auto;">
-      <!-- Header -->
-      <div style="text-align:center;margin-bottom:32px;">
-         <h1 style="color:#ffffff;font-size:28px;font-weight:900;margin:0;letter-spacing:-1px;">MODI<span style="color:#e11d48;">.</span></h1>
-         <p style="color:#666;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;margin:4px 0 0 0;">Events Redefined</p>
-      </div>
-
-      <!-- Main Content -->
-      <div style="background:#111111;border:1px solid #222222;border-radius:24px;padding:32px;color:#ffffff;">
-        ${content}
-      </div>
-
-      <!-- Footer -->
-      <div style="margin-top:32px;text-align:center;">
-        <p style="color:#444;font-size:12px;margin:0;">
-          &copy; ${new Date().getFullYear()} Modi Events. All rights reserved.
-        </p>
-        <p style="color:#444;font-size:11px;margin:8px 0 0 0;">
-          If you didn't request this email, please ignore it or contact support.
-        </p>
-      </div>
-    </div>
-  </body>
-</html>
-`;
-
-export const sendWelcomeEmail = async (data: { to: string; firstName: string }) => {
-    if (!env.resendApiKey) {
-        console.log('[Email] No Resend API key — skipping welcome email');
-        return;
-    }
-
-    const content = `
-    <h2 style="font-size:24px;font-weight:800;margin:0 0 16px 0;color:#ffffff;">Welcome to the family, ${data.firstName}!</h2>
-    <p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:0 0 24px 0;">
-      We're absolutely thrilled to have you here. Modi is your ultimate companion for discovering and experiencing the best events around you.
-    </p>
-    
-    <div style="background:#1a1a1a;border-radius:16px;padding:20px;margin-bottom:24px;border:1px solid #222;">
-      <h3 style="font-size:16px;font-weight:700;margin:0 0 12px 0;color:#ffffff;">What can you do with Modi?</h3>
-      <ul style="color:#a1a1aa;font-size:14px;margin:0;padding:0 0 0 20px;line-height:1.6;">
-        <li style="margin-bottom:8px;">Discover concerts, comedy shows, and local festivals.</li>
-        <li style="margin-bottom:8px;">Securely book tickets with our seamless checkout.</li>
-        <li style="margin-bottom:8px;">Keep all your tickets digitally in one secure place.</li>
-      </ul>
-    </div>
-
-    <p style="color:#a1a1aa;font-size:15px;line-height:1.6;margin:0 0 32px 0;">
-      Ready to find your next great experience? Head over to your dashboard and see what's trending.
-    </p>
-
-    <a href="${env.clientUrl}" style="display:inline-block;background:#e11d48;color:white;padding:14px 28px;border-radius:12px;font-weight:700;text-decoration:none;font-size:15px;text-align:center;">
-      Explore Events
-    </a>
-  `;
-
-    const html = getEmailLayout(content, 'Welcome to Modi Events');
-
-    try {
-        const { data: resendData, error: resendError } = await resend.emails.send({
-            from: env.fromEmail,
-            to: data.to,
-            subject: 'Welcome to Modi Events! 🚀',
-            html,
-        });
-
-        if (resendError) {
-            console.error('[Email] Resend error (Welcome):', JSON.stringify(resendError, null, 2));
-            return;
-        }
-
-        console.log(`[Email] Welcome email sent successfully: ${resendData?.id}`);
-    } catch (err) {
-        console.error('[Email] Unexpected failure (Welcome):', err);
-    }
-};
-
 export const sendTicketConfirmationEmail = async (data: {
     to: string;
     firstName: string;
@@ -111,67 +25,102 @@ export const sendTicketConfirmationEmail = async (data: {
     const ticketsHtml = data.tickets
         .map(
             (ticket, index) => `
-        <div style="background:#1a1a1a;border:1px solid #222;border-radius:16px;padding:20px;margin-bottom:16px;text-align:center;">
-          <p style="color:#555;font-size:11px;margin:0 0 4px 0;text-transform:uppercase;letter-spacing:1px;font-weight:700;">Ticket ${index + 1}</p>
-          <p style="color:#fff;font-size:16px;font-weight:700;margin:0 0 16px 0;">${ticket.ticketTypeName}</p>
+        <div style="background:#f9f9f9;border:1px solid #e5e5e5;border-radius:12px;padding:20px;margin-bottom:16px;text-align:center;">
+          <p style="color:#888;font-size:11px;margin:0 0 4px 0;text-transform:uppercase;letter-spacing:0.5px;">Ticket ${index + 1}</p>
+          <p style="color:#111;font-size:15px;font-weight:700;margin:0 0 16px 0;">${ticket.ticketTypeName}</p>
           ${
               ticket.qrUrl
-                  ? `<div style="display:inline-block;background:white;padding:12px;border-radius:12px;">
+                  ? `<div style="display:inline-block;background:white;padding:10px;border-radius:10px;border:1px solid #e5e5e5;">
                       <img src="${ticket.qrUrl}" alt="QR Code" style="width:160px;height:160px;display:block;" />
                     </div>`
                   : ''
           }
-          <p style="color:#888;font-size:12px;font-family:monospace;margin:12px 0 0 0;">${ticket.uniqueCode}</p>
+          <p style="color:#666;font-size:12px;font-family:monospace;margin:12px 0 0 0;">${ticket.uniqueCode}</p>
+          <p style="color:#aaa;font-size:11px;margin:4px 0 0 0;">Show this QR code at the entrance</p>
         </div>
     `,
         )
         .join('');
 
-    const content = `
-    <p style="color:#a1a1aa;font-size:13px;margin:0 0 4px 0;">You have registered for</p>
-    <h2 style="color:#ffffff;font-size:24px;font-weight:800;margin:0 0 24px 0;">${data.eventTitle}</h2>
+    const html = `
+    <!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Your Tickets for ${data.eventTitle}</title>
+      </head>
+      <body style="background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;margin:0;padding:32px 16px;">
+        <div style="max-width:540px;margin:0 auto;">
 
-    <div style="background:#1a1a1a;border-radius:16px;padding:24px;margin-bottom:24px;border:1px solid #222;">
-      <!-- Date Row -->
-      <div style="display:flex;align-items:center;margin-bottom:16px;">
-        <div style="margin-right:16px;">
-           <p style="color:#fff;font-size:15px;font-weight:700;margin:0;">
-             ${new Date(data.eventDate).toLocaleDateString('en-NG', { weekday: 'long', month: 'long', day: 'numeric' })}
-           </p>
-           <p style="color:#666;font-size:13px;margin:2px 0 0 0;">${data.eventTime}</p>
+          <!-- Header -->
+          <div style="text-align:center;margin-bottom:24px;">
+            <h1 style="color:#111;font-size:26px;font-weight:900;margin:0;letter-spacing:-0.5px;">MODI</h1>
+            <p style="color:#888;font-size:13px;margin:4px 0 0 0;">Your ticket confirmation</p>
+          </div>
+
+          <!-- Main Card -->
+          <div style="background:white;border:1px solid #e5e5e5;border-radius:20px;padding:32px;margin-bottom:20px;">
+
+            <p style="color:#888;font-size:13px;margin:0 0 4px 0;">You have registered for</p>
+            <h2 style="color:#111;font-size:22px;font-weight:800;margin:0 0 24px 0;">${data.eventTitle}</h2>
+
+            <hr style="border:none;border-top:1px solid #f0f0f0;margin:0 0 20px 0;" />
+
+            <!-- Date Row -->
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:16px;">
+              <div style="background:#f4f4f5;border:1px solid #e5e5e5;border-radius:8px;padding:6px 10px;text-align:center;min-width:42px;flex-shrink:0;">
+                <p style="color:#888;font-size:10px;font-weight:700;text-transform:uppercase;margin:0;">${new Date(data.eventDate).toLocaleString('en', { month: 'short' })}</p>
+                <p style="color:#111;font-size:18px;font-weight:800;margin:0;">${new Date(data.eventDate).getDate()}</p>
+              </div>
+              <div>
+                <p style="color:#111;font-size:15px;font-weight:700;margin:0;">
+                  ${new Date(data.eventDate).toLocaleDateString('en-NG', { weekday: 'long', month: 'long', day: 'numeric' })}
+                </p>
+                <p style="color:#888;font-size:13px;margin:2px 0 0 0;">${data.eventTime}</p>
+              </div>
+            </div>
+
+            <!-- Venue Row -->
+            <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:24px;">
+              <div style="background:#f4f4f5;border:1px solid #e5e5e5;border-radius:8px;padding:8px 10px;min-width:42px;flex-shrink:0;text-align:center;">
+                <img src="https://cdn.jsdelivr.net/npm/heroicons@1.0.6/solid/location-marker.svg" width="18" height="18" style="display:block;margin:0 auto;opacity:0.5;" alt="Location" />
+              </div>
+              <div>
+                <p style="color:#111;font-size:15px;font-weight:700;margin:0;">${data.eventVenue}</p>
+                <p style="color:#888;font-size:13px;margin:2px 0 0 0;">${data.eventCity}</p>
+              </div>
+            </div>
+
+            <hr style="border:none;border-top:1px solid #f0f0f0;margin:0 0 24px 0;" />
+
+            <!-- Tickets -->
+            <h3 style="color:#111;font-size:15px;font-weight:700;margin:0 0 16px 0;">
+              Your Ticket${data.tickets.length > 1 ? 's' : ''}
+            </h3>
+            ${ticketsHtml}
+
+          </div>
+
+          <!-- Footer -->
+          <p style="color:#bbb;font-size:11px;text-align:center;margin:0;">
+            Sent by Modi · If you didn't make this purchase, please contact support.
+          </p>
         </div>
-      </div>
-
-      <!-- Venue Row -->
-      <div style="margin-top:16px;border-top:1px solid #222;padding-top:16px;">
-        <p style="color:#fff;font-size:15px;font-weight:700;margin:0;">${data.eventVenue}</p>
-        <p style="color:#666;font-size:13px;margin:2px 0 0 0;">${data.eventCity}</p>
-      </div>
-    </div>
-
-    <h3 style="color:#ffffff;font-size:16px;font-weight:700;margin:0 0 16px 0;">
-      Your Ticket${data.tickets.length > 1 ? 's' : ''}
-    </h3>
-    ${ticketsHtml}
+      </body>
+    </html>
   `;
 
-    const html = getEmailLayout(content, `Your tickets for ${data.eventTitle}`);
-
     try {
-        const { data: resendData, error: resendError } = await resend.emails.send({
+        await resend.emails.send({
             from: env.fromEmail,
             to: data.to,
             subject: `Your tickets for ${data.eventTitle} 🎟️`,
             html,
         });
-
-        if (resendError) {
-            console.error('[Email] Resend error (Confirmation):', JSON.stringify(resendError, null, 2));
-            return;
-        }
-
-        console.log(`[Email] Ticket confirmation sent successfully: ${resendData?.id}`);
+        console.log(`[Email] Ticket confirmation sent to ${data.to}`);
     } catch (err) {
-        console.error('[Email] Unexpected failure (Confirmation):', err);
+        // Never let email failure break the payment flow
+        console.error('[Email] Failed to send ticket confirmation:', err);
     }
 };

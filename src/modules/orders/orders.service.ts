@@ -19,6 +19,7 @@ export const initiateOrder = async (
             quantity: number;
         }[];
     },
+    isGuest: boolean = true,
     origin?: string
 ) => {
     // 1. Fetch the event and verify it's published
@@ -107,6 +108,7 @@ export const initiateOrder = async (
             totalAmount,
             platformFee,
             organizerPayout,
+            isGuest,
             status: 'PENDING',
             orderItems: {
                 create: validatedItems.map(item => ({
@@ -268,18 +270,7 @@ export const verifyOrder = async (reference: string) => {
 
     // Send ticket confirmation email (fire-and-forget — never blocks the response)
     if (result.order?.user) {
-        const { user, event, orderItems } = result.order;
-        
-        // Map created tickets to their respective ticket type names
-        const enrichedTickets = result.tickets.map((t: any) => {
-            const item = orderItems.find(oi => oi.id === t.orderItemId);
-            return {
-                uniqueCode: t.uniqueCode,
-                qrUrl: t.qrUrl ?? null,
-                ticketTypeName: item?.ticketType?.name ?? 'Ticket',
-            };
-        });
-
+        const { user, event } = result.order;
         sendTicketConfirmationEmail({
             to: user.email,
             firstName: user.firstName,
@@ -288,7 +279,12 @@ export const verifyOrder = async (reference: string) => {
             eventTime: event.startTime,
             eventVenue: event.venue,
             eventCity: event.city,
-            tickets: enrichedTickets,
+            tickets: result.tickets.map((t: any) => ({
+                uniqueCode: t.uniqueCode,
+                qrUrl: t.qrUrl ?? null,
+                // ticketTypeName comes from the orderItem included in createdTickets
+                ticketTypeName: t.orderItem?.ticketType?.name ?? 'Ticket',
+            })),
         }).catch((err: unknown) => {
             console.error('[Email] Unexpected error in fire-and-forget email:', err);
         });

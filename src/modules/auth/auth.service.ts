@@ -1,7 +1,6 @@
 import prisma from '../../config/db.js';
 import { hashPassword, comparePassword } from '../../utils/hash.js';
 import { generateAccessToken, generateRefreshToken, verifyRefreshToken } from '../../utils/jwt.js';
-import { sendWelcomeEmail } from '../../utils/email.js';
 
 export const registerUser = async (data: {
     firstName: string;
@@ -38,12 +37,6 @@ export const registerUser = async (data: {
             createdAt: true,
         }
     });
-
-    // Send welcome email (background)
-    sendWelcomeEmail({
-        to: user.email,
-        firstName: user.firstName,
-    }).catch(err => console.error('[Auth Service] Welcome email error:', err));
 
     return user;
 };

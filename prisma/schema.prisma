@@ -111,6 +111,7 @@ model Order {
   totalAmount     Float
   platformFee     Float
   organizerPayout Float
+  isGuest         Boolean     @default(true)
   status          OrderStatus @default(PENDING)
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

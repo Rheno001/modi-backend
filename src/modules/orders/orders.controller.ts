@@ -53,7 +53,28 @@ export const initiate = async (
             }
         }
 
-        const result = await initiateOrder(attendee, req.body, origin);
+        // --- SESSION DETECTION ---
+        // Detect if the user is logged in during purchase
+        let isGuest = true;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                try {
+                    const { verifyAccessToken } = await import('../../utils/jwt.js');
+                    const decoded = verifyAccessToken(token);
+                    if (decoded && decoded.userId) {
+                        isGuest = false;
+                        console.log(`[Order Controller] Authenticated user detected: ${decoded.userId}. Marking order as non-guest.`);
+                    }
+                } catch (e) {
+                    // Invalid token — treat as guest, don't throw (allow purchase to continue)
+                    console.log('[Order Controller] Invalid token provided during checkout. Treating as guest order.');
+                }
+            }
+        }
+
+        const result = await initiateOrder(attendee, req.body, isGuest, origin);
         return sendSuccess(res, result, 'Order initiated successfully', 201);
     } catch (err: any) {
         if (
