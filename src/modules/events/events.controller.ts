@@ -119,12 +119,15 @@ export const cancel = async (
     next: NextFunction
 ) => {
     try {
-        const event = await cancelEvent(
+        const result = await cancelEvent(
             req.params.id as string,
             req.user!.userId,
             req.user!.role
         );
-        return sendSuccess(res, event, 'Event cancelled successfully', 200);
+        const message = (result as any).deleted 
+            ? 'Event deleted successfully' 
+            : 'Event cancelled successfully';
+        return sendSuccess(res, result, message, 200);
     } catch (err: any) {
         if (
             err.message === 'Event not found' ||

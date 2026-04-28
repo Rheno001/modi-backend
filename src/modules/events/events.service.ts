@@ -266,12 +266,19 @@ export const cancelEvent = async (
         throw new Error('Event is already cancelled');
     }
 
+    if (event.status === 'DRAFT') {
+        await prisma.event.delete({
+            where: { id: eventId }
+        });
+        return { deleted: true };
+    }
+
     const updated = await prisma.event.update({
         where: { id: eventId },
         data: { status: 'CANCELLED' }
     });
 
-    return updated;
+    return { ...updated, deleted: false };
 };
 
 export const publishEvent = async (
