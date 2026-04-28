@@ -79,8 +79,12 @@ export const getAllEvents = async (filters: {
     const limit = filters.limit || 12;
     const skip = (page - 1) * limit;
 
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
     const where: Prisma.EventWhereInput = {
         status: 'PUBLISHED',
+        endDate: { gte: now },
         ...(filters.city && { city: { contains: filters.city, mode: 'insensitive' } }),
         ...(filters.category && { category: { contains: filters.category, mode: 'insensitive' } }),
         ...(filters.search && {

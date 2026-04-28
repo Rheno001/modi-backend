@@ -31,6 +31,11 @@ export const initiateOrder = async (
     if (!event) throw new Error('Event not found');
     if (event.status !== 'PUBLISHED') throw new Error('Event is not available for booking');
 
+    const { isEventExpired } = await import('../../utils/date.js');
+    if (isEventExpired(event.endDate, event.endTime)) {
+        throw new Error('This event has already ended and is no longer available for booking');
+    }
+
     // 2. Find or create a guest user account using their email
     // If they already have an account, use it
     // If not, create a guest account silently
