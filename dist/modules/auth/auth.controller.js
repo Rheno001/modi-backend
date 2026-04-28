@@ -26,8 +26,8 @@ export const login = async (req, res, next) => {
         const { user, accessToken, refreshToken } = await loginUser(req.body);
         res.cookie('refreshToken', refreshToken, {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: true, // Required for sameSite: 'none'
+            sameSite: 'none',
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
         return sendSuccess(res, { user, accessToken }, 'Login successful', 200);
@@ -63,8 +63,8 @@ export const logout = async (req, res, next) => {
         await logoutUser(token);
         res.clearCookie('refreshToken', {
             httpOnly: true,
-            secure: process.env.NODE_ENV === 'production',
-            sameSite: 'strict',
+            secure: true,
+            sameSite: 'none',
         });
         return sendSuccess(res, null, 'Logged out successfully', 200);
     }
