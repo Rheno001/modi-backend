@@ -11,6 +11,8 @@ import {
     publishEvent,
     adminGetAllEvents,
     cancelEvent as deleteEvent,
+    getEventAttendees,
+    getEventAnalytics,
 } from './events.service.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 
@@ -191,6 +193,54 @@ export const publish = async (
             err.message === 'Cannot publish an event with no ticket types'
         ) {
             const status = err.message === 'Event not found' ? 404 : 400;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+
+export const getAttendees = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const attendees = await getEventAttendees(
+            req.params.id as string,
+            req.user!.userId,
+            req.user!.role
+        );
+        return sendSuccess(res, attendees, 'Event attendees fetched successfully', 200);
+    } catch (err: any) {
+        if (
+            err.message === 'Event not found' ||
+            err.message === 'You are not authorized to view attendees for this event'
+        ) {
+            const status = err.message === 'Event not found' ? 404 : 403;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+
+export const getAnalytics = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const analytics = await getEventAnalytics(
+            req.params.id as string,
+            req.user!.userId,
+            req.user!.role
+        );
+        return sendSuccess(res, analytics, 'Event analytics fetched successfully', 200);
+    } catch (err: any) {
+        if (
+            err.message === 'Event not found' ||
+            err.message === 'You are not authorized to view analytics for this event'
+        ) {
+            const status = err.message === 'Event not found' ? 404 : 403;
             return sendError(res, err.message, status);
         }
         next(err);

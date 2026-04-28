@@ -1,5 +1,5 @@
 import { validateCreateEvent, validateUpdateEvent } from './events.validation.js';
-import { createEvent, getAllEvents, getEventById, getMyEvents, updateEvent, cancelEvent, publishEvent, adminGetAllEvents, } from './events.service.js';
+import { createEvent, getAllEvents, getEventById, getMyEvents, updateEvent, cancelEvent, publishEvent, adminGetAllEvents, cancelEvent as deleteEvent, getEventAttendees, getEventAnalytics, } from './events.service.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 export const create = async (req, res, next) => {
     try {
@@ -32,7 +32,7 @@ export const getAll = async (req, res, next) => {
 };
 export const getOne = async (req, res, next) => {
     try {
-        const event = await getEventById(req.params.id);
+        const event = await getEventById(req.params.id, req.user?.userId, req.user?.role);
         return sendSuccess(res, event, 'Event fetched successfully', 200);
     }
     catch (err) {
@@ -63,7 +63,7 @@ export const update = async (req, res, next) => {
     catch (err) {
         if (err.message === 'Event not found' ||
             err.message === 'You are not authorized to edit this event' ||
-            err.message === 'Cannot edit a cancelled event') {
+            err.message.startsWith('Cannot edit a')) {
             const status = err.message === 'Event not found' ? 404 : 403;
             return sendError(res, err.message, status);
         }
@@ -72,8 +72,29 @@ export const update = async (req, res, next) => {
 };
 export const cancel = async (req, res, next) => {
     try {
-        const event = await cancelEvent(req.params.id, req.user.userId, req.user.role);
-        return sendSuccess(res, event, 'Event cancelled successfully', 200);
+        const result = await cancelEvent(req.params.id, req.user.userId, req.user.role);
+        const message = result.deleted
+            ? 'Event deleted successfully'
+            : 'Event cancelled successfully';
+        return sendSuccess(res, result, message, 200);
+    }
+    catch (err) {
+        if (err.message === 'Event not found' ||
+            err.message === 'You are not authorized to cancel this event' ||
+            err.message === 'Event is already cancelled') {
+            const status = err.message === 'Event not found' ? 404 : 403;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+export const remove = async (req, res, next) => {
+    try {
+        const result = await deleteEvent(req.params.id, req.user.userId, req.user.role);
+        const message = result.deleted
+            ? 'Event deleted successfully'
+            : 'Event cancelled successfully';
+        return sendSuccess(res, result, message, 200);
     }
     catch (err) {
         if (err.message === 'Event not found' ||
@@ -97,6 +118,34 @@ export const publish = async (req, res, next) => {
             err.message === 'Event is already published' ||
             err.message === 'Cannot publish an event with no ticket types') {
             const status = err.message === 'Event not found' ? 404 : 400;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+export const getAttendees = async (req, res, next) => {
+    try {
+        const attendees = await getEventAttendees(req.params.id, req.user.userId, req.user.role);
+        return sendSuccess(res, attendees, 'Event attendees fetched successfully', 200);
+    }
+    catch (err) {
+        if (err.message === 'Event not found' ||
+            err.message === 'You are not authorized to view attendees for this event') {
+            const status = err.message === 'Event not found' ? 404 : 403;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+export const getAnalytics = async (req, res, next) => {
+    try {
+        const analytics = await getEventAnalytics(req.params.id, req.user.userId, req.user.role);
+        return sendSuccess(res, analytics, 'Event analytics fetched successfully', 200);
+    }
+    catch (err) {
+        if (err.message === 'Event not found' ||
+            err.message === 'You are not authorized to view analytics for this event') {
+            const status = err.message === 'Event not found' ? 404 : 403;
             return sendError(res, err.message, status);
         }
         next(err);

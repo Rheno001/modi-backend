@@ -45,8 +45,11 @@ export const getAllEvents = async (filters) => {
     const page = filters.page || 1;
     const limit = filters.limit || 12;
     const skip = (page - 1) * limit;
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
     const where = {
         status: 'PUBLISHED',
+        endDate: { gte: now },
         ...(filters.city && { city: { contains: filters.city, mode: 'insensitive' } }),
         ...(filters.category && { category: { contains: filters.category, mode: 'insensitive' } }),
         ...(filters.search && {
@@ -88,7 +91,7 @@ export const getAllEvents = async (filters) => {
         }
     };
 };
-export const getEventById = async (eventId) => {
+export const getEventById = async (eventId, userId, role) => {
     const event = await prisma.event.findUnique({
         where: { id: eventId },
         include: {
@@ -106,7 +109,8 @@ export const getEventById = async (eventId) => {
     if (!event) {
         throw new Error('Event not found');
     }
-    if (event.status !== 'PUBLISHED') {
+    // Allow the owner or an admin to see a draft/cancelled event
+    if (event.status !== 'PUBLISHED' && event.createdById !== userId && role !== 'ADMIN') {
         throw new Error('Event not found');
     }
     return event;
@@ -121,6 +125,80 @@ export const getMyEvents = async (userId) => {
     });
     return events;
 };
+export const getEventAttendees = async (eventId, userId, role) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to view attendees for this event');
+    }
+    const orders = await prisma.order.findMany({
+        where: {
+            eventId,
+            status: 'COMPLETED'
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phone: true,
+                    avatar: true,
+                }
+            },
+            orderItems: {
+                include: {
+                    ticketType: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+    return orders;
+};
+export const getEventAnalytics = async (eventId, userId, role) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+    if (!event) {
+        throw new Error('Event not found');
+    }
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to view analytics for this event');
+    }
+    const completedOrders = await prisma.order.findMany({
+        where: {
+            eventId,
+            status: 'COMPLETED'
+        },
+        select: {
+            totalAmount: true,
+            organizerPayout: true,
+            userId: true,
+            orderItems: {
+                select: {
+                    quantity: true
+                }
+            }
+        }
+    });
+    const totalRevenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalPayout = completedOrders.reduce((sum, order) => sum + order.organizerPayout, 0);
+    const totalTicketsSold = completedOrders.reduce((sum, order) => sum + order.orderItems.reduce((iSum, item) => iSum + item.quantity, 0), 0);
+    const uniqueAttendees = new Set(completedOrders.map((o) => o.userId)).size;
+    return {
+        totalRevenue,
+        totalPayout,
+        totalTicketsSold,
+        uniqueAttendees,
+        orderCount: completedOrders.length
+    };
+};
 export const updateEvent = async (eventId, userId, role, data) => {
     const event = await prisma.event.findUnique({
         where: { id: eventId }
@@ -131,8 +209,8 @@ export const updateEvent = async (eventId, userId, role, data) => {
     if (event.createdById !== userId && role !== 'ADMIN') {
         throw new Error('You are not authorized to edit this event');
     }
-    if (event.status === 'CANCELLED') {
-        throw new Error('Cannot edit a cancelled event');
+    if (event.status === 'CANCELLED' || event.status === 'COMPLETED') {
+        throw new Error(`Cannot edit a ${event.status.toLowerCase()} event`);
     }
     const { ticketTypes, startDate, endDate, ...eventData } = data;
     const updateData = {
@@ -140,6 +218,20 @@ export const updateEvent = async (eventId, userId, role, data) => {
         ...(startDate && { startDate: new Date(startDate) }),
         ...(endDate && { endDate: new Date(endDate) }),
     };
+    // If ticketTypes are provided, we replace them
+    if (ticketTypes && Array.isArray(ticketTypes)) {
+        updateData.ticketTypes = {
+            deleteMany: {},
+            create: ticketTypes.map((ticket) => ({
+                name: ticket.name,
+                price: ticket.price,
+                quantity: ticket.quantity,
+                saleStart: ticket.saleStart ? new Date(ticket.saleStart) : null,
+                saleEnd: ticket.saleEnd ? new Date(ticket.saleEnd) : null,
+                perks: ticket.perks ?? null,
+            }))
+        };
+    }
     const updated = await prisma.event.update({
         where: { id: eventId },
         data: updateData,
@@ -170,11 +262,17 @@ export const cancelEvent = async (eventId, userId, role) => {
     if (event.status === 'CANCELLED') {
         throw new Error('Event is already cancelled');
     }
+    if (event.status === 'DRAFT') {
+        await prisma.event.delete({
+            where: { id: eventId }
+        });
+        return { deleted: true };
+    }
     const updated = await prisma.event.update({
         where: { id: eventId },
         data: { status: 'CANCELLED' }
     });
-    return updated;
+    return { ...updated, deleted: false };
 };
 export const publishEvent = async (eventId, userId, role) => {
     const event = await prisma.event.findUnique({

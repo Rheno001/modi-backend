@@ -2,6 +2,7 @@ export declare const initializePayment: (data: {
     email: string;
     amount: number;
     reference: string;
+    origin?: string | undefined;
     metadata?: Record<string, any>;
 }) => Promise<any>;
 export declare const verifyPayment: (reference: string) => Promise<any>;

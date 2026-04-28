@@ -12,5 +12,8 @@ export declare const env: {
     paystackPublicKey: string;
     resendApiKey: string;
     fromEmail: string;
+    cloudinaryCloudName: string;
+    cloudinaryApiKey: string;
+    cloudinaryApiSecret: string;
 };
 //# sourceMappingURL=env.d.ts.map

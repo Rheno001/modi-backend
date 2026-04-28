@@ -169,6 +169,102 @@ export const getMyEvents = async (userId: string) => {
     return events;
 };
 
+export const getEventAttendees = async (
+    eventId: string,
+    userId: string,
+    role: string
+) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+
+    if (!event) {
+        throw new Error('Event not found');
+    }
+
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to view attendees for this event');
+    }
+
+    const orders = await prisma.order.findMany({
+        where: {
+            eventId,
+            status: 'COMPLETED'
+        },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    firstName: true,
+                    lastName: true,
+                    email: true,
+                    phone: true,
+                    avatar: true,
+                }
+            },
+            orderItems: {
+                include: {
+                    ticketType: true
+                }
+            }
+        },
+        orderBy: { createdAt: 'desc' }
+    });
+
+    return orders;
+};
+
+export const getEventAnalytics = async (
+    eventId: string,
+    userId: string,
+    role: string
+) => {
+    const event = await prisma.event.findUnique({
+        where: { id: eventId }
+    });
+
+    if (!event) {
+        throw new Error('Event not found');
+    }
+
+    if (event.createdById !== userId && role !== 'ADMIN') {
+        throw new Error('You are not authorized to view analytics for this event');
+    }
+
+    const completedOrders = await prisma.order.findMany({
+        where: {
+            eventId,
+            status: 'COMPLETED'
+        },
+        select: {
+            totalAmount: true,
+            organizerPayout: true,
+            userId: true,
+            orderItems: {
+                select: {
+                    quantity: true
+                }
+            }
+        }
+    });
+
+    const totalRevenue = completedOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+    const totalPayout = completedOrders.reduce((sum, order) => sum + order.organizerPayout, 0);
+    const totalTicketsSold = completedOrders.reduce(
+        (sum, order) => sum + order.orderItems.reduce((iSum, item) => iSum + item.quantity, 0),
+        0
+    );
+    const uniqueAttendees = new Set(completedOrders.map((o) => o.userId)).size;
+
+    return {
+        totalRevenue,
+        totalPayout,
+        totalTicketsSold,
+        uniqueAttendees,
+        orderCount: completedOrders.length
+    };
+};
+
 export const updateEvent = async (
     eventId: string,
     userId: string,

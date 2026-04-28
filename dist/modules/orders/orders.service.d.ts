@@ -9,7 +9,7 @@ export declare const initiateOrder: (attendee: {
         ticketTypeId: string;
         quantity: number;
     }[];
-}) => Promise<{
+}, isGuest?: boolean, origin?: string) => Promise<{
     order: {
         orderItems: ({
             ticketType: {
@@ -44,6 +44,7 @@ export declare const initiateOrder: (attendee: {
         totalAmount: number;
         platformFee: number;
         organizerPayout: number;
+        isGuest: boolean;
     };
     paymentUrl: any;
     accessCode: any;
@@ -111,6 +112,7 @@ export declare const verifyOrder: (reference: string) => Promise<{
         totalAmount: number;
         platformFee: number;
         organizerPayout: number;
+        isGuest: boolean;
     }) | null;
     tickets: any[];
 }>;
@@ -169,6 +171,7 @@ export declare const getMyOrders: (userId: string) => Promise<({
     totalAmount: number;
     platformFee: number;
     organizerPayout: number;
+    isGuest: boolean;
 })[]>;
 export declare const getMyTickets: (userId: string) => Promise<({
     order: {
@@ -193,6 +196,7 @@ export declare const getMyTickets: (userId: string) => Promise<({
         totalAmount: number;
         platformFee: number;
         organizerPayout: number;
+        isGuest: boolean;
     };
     orderItem: {
         ticketType: {
@@ -246,6 +250,7 @@ export declare const scanTicket: (uniqueCode: string, scannedById: string) => Pr
         totalAmount: number;
         platformFee: number;
         organizerPayout: number;
+        isGuest: boolean;
     };
     orderItem: {
         ticketType: {

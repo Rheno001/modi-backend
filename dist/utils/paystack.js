@@ -8,12 +8,15 @@ const paystackClient = axios.create({
     },
 });
 export const initializePayment = async (data) => {
+    const baseUrl = data.origin || env.clientUrl;
+    console.log('[Paystack] Initializing with origin:', data.origin);
+    console.log('[Paystack] Using baseUrl:', baseUrl);
     const response = await paystackClient.post('/transaction/initialize', {
         email: data.email,
         amount: Math.round(data.amount * 100), // Paystack expects kobo
         reference: data.reference,
         metadata: data.metadata,
-        callback_url: `${env.clientUrl}/payment/verify`,
+        callback_url: `${baseUrl}/payment/verify`,
     });
     return response.data.data;
 };

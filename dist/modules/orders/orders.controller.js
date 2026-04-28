@@ -3,6 +3,19 @@ import { sendSuccess, sendError } from '../../utils/response.js';
 export const initiate = async (req, res, next) => {
     try {
         const { eventId, items, attendee } = req.body;
+        let origin = req.body.origin || req.headers.origin;
+        // If it's a string array (unlikely for origin header, but safe) take the first
+        if (Array.isArray(origin))
+            origin = origin[0];
+        // Fallback to referer if still missing (extract origin from URL)
+        if (!origin && req.headers.referer) {
+            try {
+                const refererUrl = new URL(req.headers.referer);
+                origin = refererUrl.origin;
+            }
+            catch (e) { /* ignore */ }
+        }
+        console.log('[Order Controller] Final detected origin:', origin);
         if (!eventId) {
             return sendError(res, 'Event ID is required', 400);
         }
@@ -20,7 +33,28 @@ export const initiate = async (req, res, next) => {
                 return sendError(res, 'Quantity must be at least 1 for each item', 400);
             }
         }
-        const result = await initiateOrder(attendee, req.body);
+        // --- SESSION DETECTION ---
+        // Detect if the user is logged in during purchase
+        let isGuest = true;
+        const authHeader = req.headers.authorization;
+        if (authHeader && authHeader.startsWith('Bearer ')) {
+            const token = authHeader.split(' ')[1];
+            if (token) {
+                try {
+                    const { verifyAccessToken } = await import('../../utils/jwt.js');
+                    const decoded = verifyAccessToken(token);
+                    if (decoded && decoded.userId) {
+                        isGuest = false;
+                        console.log(`[Order Controller] Authenticated user detected: ${decoded.userId}. Marking order as non-guest.`);
+                    }
+                }
+                catch (e) {
+                    // Invalid token — treat as guest, don't throw (allow purchase to continue)
+                    console.log('[Order Controller] Invalid token provided during checkout. Treating as guest order.');
+                }
+            }
+        }
+        const result = await initiateOrder(attendee, req.body, isGuest, origin);
         return sendSuccess(res, result, 'Order initiated successfully', 201);
     }
     catch (err) {
@@ -35,15 +69,18 @@ export const initiate = async (req, res, next) => {
     }
 };
 export const verify = async (req, res, next) => {
+    const { reference } = req.params;
     try {
-        const { reference } = req.params;
+        console.log('[Order Controller] Starting verification for reference:', reference);
         if (!reference) {
             return sendError(res, 'Reference is required', 400);
         }
         const result = await verifyOrder(reference);
+        console.log('[Order Controller] Verification successful for reference:', reference);
         return sendSuccess(res, result, 'Order verified successfully', 200);
     }
     catch (err) {
+        console.error('[Order Controller] Verification error for reference:', reference, 'Error:', err.message);
         if (err.message === 'Order not found') {
             return sendError(res, err.message, 404);
         }

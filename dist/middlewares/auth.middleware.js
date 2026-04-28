@@ -21,4 +21,10 @@ export const authMiddleware = (req, res, next) => {
         return sendError(res, 'Invalid or expired token', 401);
     }
 };
+export const isAdmin = (req, res, next) => {
+    if (req.user?.role !== 'ADMIN') {
+        return sendError(res, 'Access forbidden: Admin role required', 403);
+    }
+    next();
+};
 //# sourceMappingURL=auth.middleware.js.map

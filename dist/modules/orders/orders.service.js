@@ -4,7 +4,7 @@ import { generateUniqueCode, generateQRCode } from '../../utils/ticket.js';
 import { env } from '../../config/env.js';
 import crypto from 'crypto';
 import { sendTicketConfirmationEmail } from '../../utils/email.js';
-export const initiateOrder = async (attendee, data) => {
+export const initiateOrder = async (attendee, data, isGuest = true, origin) => {
     // 1. Fetch the event and verify it's published
     const event = await prisma.event.findUnique({
         where: { id: data.eventId },
@@ -14,6 +14,10 @@ export const initiateOrder = async (attendee, data) => {
         throw new Error('Event not found');
     if (event.status !== 'PUBLISHED')
         throw new Error('Event is not available for booking');
+    const { isEventExpired } = await import('../../utils/date.js');
+    if (isEventExpired(event.endDate, event.endTime)) {
+        throw new Error('This event has already ended and is no longer available for booking');
+    }
     // 2. Find or create a guest user account using their email
     // If they already have an account, use it
     // If not, create a guest account silently
@@ -75,6 +79,7 @@ export const initiateOrder = async (attendee, data) => {
             totalAmount,
             platformFee,
             organizerPayout,
+            isGuest,
             status: 'PENDING',
             orderItems: {
                 create: validatedItems.map(item => ({
@@ -95,6 +100,7 @@ export const initiateOrder = async (attendee, data) => {
         email: user.email,
         amount: totalAmount,
         reference,
+        origin,
         metadata: {
             orderId: order.id,
             userId: user.id,
@@ -139,8 +145,11 @@ export const verifyOrder = async (reference) => {
         return { order, tickets };
     }
     // 3. Verify with Paystack
+    console.log('[Order Service] Verifying payment with Paystack for reference:', reference);
     const paystackData = await verifyPayment(reference);
+    console.log('[Order Service] Paystack verification response status:', paystackData.status);
     if (paystackData.status !== 'success') {
+        console.warn('[Order Service] Payment NOT successful. Updating status to FAILED.');
         await prisma.order.update({
             where: { reference },
             data: { status: 'FAILED' },
@@ -149,6 +158,7 @@ export const verifyOrder = async (reference) => {
     }
     // 4. Use a transaction to update everything atomically
     const result = await prisma.$transaction(async (tx) => {
+        console.log('[Order Service] Transaction started for reference:', reference);
         // Update order status
         await tx.order.update({
             where: { reference },
@@ -166,6 +176,7 @@ export const verifyOrder = async (reference) => {
             throw new Error('Order not found during transaction');
         const createdTickets = [];
         // For each order item, generate tickets and update quantity sold
+        console.log(`[Order Service] Creating tickets for ${updatedOrder.orderItems.length} items...`);
         for (const item of updatedOrder.orderItems) {
             // Atomically increment quantitySold — prevents overselling
             await tx.ticketType.update({
@@ -194,6 +205,7 @@ export const verifyOrder = async (reference) => {
                 createdTickets.push(ticket);
             }
         }
+        console.log(`[Order Service] Successfully created ${createdTickets.length} tickets`);
         // 3. Finally, fetch the fully updated order with fresh stats and secure user object
         const finalOrder = await tx.order.findUnique({
             where: { reference },

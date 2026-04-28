@@ -9,6 +9,8 @@ import {
     publish,
     adminGetAll,
     remove,
+    getAttendees,
+    getAnalytics,
 } from './events.controller.js';
 import { authMiddleware } from '../../middlewares/auth.middleware.js';
 import { adminMiddleware } from '../../middlewares/role.middleware.js';
@@ -25,6 +27,8 @@ router.get('/my/:id', authMiddleware, getOne); // We can reuse getOne if we make
 router.patch('/:id', authMiddleware, update);
 router.patch('/:id/cancel', authMiddleware, cancel);
 router.patch('/:id/publish', authMiddleware, publish);
+router.get('/:id/attendees', authMiddleware, getAttendees);
+router.get('/:id/analytics', authMiddleware, getAnalytics);
 router.delete('/:id', authMiddleware, remove);
 
 // Catch-all ID route (must be last among ID routes)
