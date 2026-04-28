@@ -10,6 +10,7 @@ import {
     cancelEvent,
     publishEvent,
     adminGetAllEvents,
+    cancelEvent as deleteEvent,
 } from './events.service.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
 
@@ -120,6 +121,34 @@ export const cancel = async (
 ) => {
     try {
         const result = await cancelEvent(
+            req.params.id as string,
+            req.user!.userId,
+            req.user!.role
+        );
+        const message = (result as any).deleted 
+            ? 'Event deleted successfully' 
+            : 'Event cancelled successfully';
+        return sendSuccess(res, result, message, 200);
+    } catch (err: any) {
+        if (
+            err.message === 'Event not found' ||
+            err.message === 'You are not authorized to cancel this event' ||
+            err.message === 'Event is already cancelled'
+        ) {
+            const status = err.message === 'Event not found' ? 404 : 403;
+            return sendError(res, err.message, status);
+        }
+        next(err);
+    }
+};
+
+export const remove = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        const result = await deleteEvent(
             req.params.id as string,
             req.user!.userId,
             req.user!.role
