@@ -11,6 +11,8 @@ import {
     remove,
     getAttendees,
     getAnalytics,
+    getCategories,
+    getStates,
 } from './events.controller.js';
 import { authMiddleware } from '../../middlewares/auth.middleware.js';
 import { adminMiddleware } from '../../middlewares/role.middleware.js';
@@ -19,6 +21,8 @@ const router = Router();
 
 // Public routes — no auth required
 router.get('/', getAll);
+router.get('/categories', getCategories);
+router.get('/states', getStates);
 
 // Protected routes — must be logged in
 router.post('/', authMiddleware, create);

@@ -15,6 +15,7 @@ import {
     getEventAnalytics,
 } from './events.service.js';
 import { sendSuccess, sendError } from '../../utils/response.js';
+import { EVENT_CATEGORIES, NIGERIAN_STATES } from '../../utils/constants.js';
 
 export const create = async (
     req: AuthRequest,
@@ -40,10 +41,11 @@ export const getAll = async (
     next: NextFunction
 ) => {
     try {
-        const { city, category, search, page, limit } = req.query;
+        const { city, state, category, search, page, limit } = req.query;
 
         const result = await getAllEvents({
             city: city as string,
+            state: state as string,
             category: category as string,
             search: search as string,
             page: page ? parseInt(page as string) : 1,
@@ -255,6 +257,30 @@ export const adminGetAll = async (
     try {
         const events = await adminGetAllEvents();
         return sendSuccess(res, events, 'All events fetched successfully', 200);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getCategories = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        return sendSuccess(res, EVENT_CATEGORIES, 'Event categories fetched successfully', 200);
+    } catch (err) {
+        next(err);
+    }
+};
+
+export const getStates = async (
+    req: AuthRequest,
+    res: Response,
+    next: NextFunction
+) => {
+    try {
+        return sendSuccess(res, NIGERIAN_STATES, 'States fetched successfully', 200);
     } catch (err) {
         next(err);
     }

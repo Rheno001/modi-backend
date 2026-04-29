@@ -70,6 +70,7 @@ export const createEvent = async (
 
 export const getAllEvents = async (filters: {
     city?: string;
+    state?: string;
     category?: string;
     search?: string;
     page?: number;
@@ -86,6 +87,7 @@ export const getAllEvents = async (filters: {
         status: 'PUBLISHED',
         endDate: { gte: now },
         ...(filters.city && { city: { contains: filters.city, mode: 'insensitive' } }),
+        ...(filters.state && { state: { contains: filters.state, mode: 'insensitive' } }),
         ...(filters.category && { category: { contains: filters.category, mode: 'insensitive' } }),
         ...(filters.search && {
             OR: [
