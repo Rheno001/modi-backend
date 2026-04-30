@@ -124,6 +124,7 @@ export const getMe = async (
         }
 
         return sendSuccess(res, {
+            id: user.id,
             userId: user.id,
             firstName: user.firstName,
             lastName: user.lastName,
